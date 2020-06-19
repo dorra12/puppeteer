@@ -25,12 +25,11 @@ import { TimeoutSettings } from './TimeoutSettings';
 import { MouseButtonInput } from './Input';
 import { FrameManager, Frame } from './FrameManager';
 import { getQueryHandlerAndSelector, QueryHandler } from './QueryHandler';
+import { isNode } from '../environment';
 
 // This predicateQueryHandler is declared here so that TypeScript knows about it
 // when it is used in the predicate function below.
 declare const predicateQueryHandler: QueryHandler;
-
-const readFileAsync = helper.promisify(fs.readFile);
 
 export interface WaitForSelectorOptions {
   visible?: boolean;
@@ -232,8 +231,15 @@ export class DOMWorld {
   }
 
   /**
-   * @param {!{url?: string, path?: string, content?: string, type?: string}} options
-   * @returns {!Promise<!ElementHandle>}
+   * Adds a script tag into the current context.
+   *
+   * @remarks
+   *
+   * You can pass a URL, filepath or string of contents. Note that when running Puppeteer
+   * in a browser environment you cannot pass a filepath and should use either
+   * `url` or `content`.
+   *
+   * @param options
    */
   async addScriptTag(options: {
     url?: string;
@@ -254,6 +260,14 @@ export class DOMWorld {
     }
 
     if (path !== null) {
+      if (!isNode) {
+        throw new Error(
+          'Cannot pass a filepath to addScriptTag in the browser environment.'
+        );
+      }
+      // eslint-disable-next-line @typescript-eslint/no-var-requires
+      const fs = require('fs');
+      const readFileAsync = helper.promisify(fs.readFile);
       let contents = await readFileAsync(path, 'utf8');
       contents += '//# sourceURL=' + path.replace(/\n/g, '');
       const context = await this.executionContext();
@@ -304,6 +318,17 @@ export class DOMWorld {
     }
   }
 
+  /**
+   * Adds a style tag into the current context.
+   *
+   * @remarks
+   *
+   * You can pass a URL, filepath or string of contents. Note that when running Puppeteer
+   * in a browser environment you cannot pass a filepath and should use either
+   * `url` or `content`.
+   *
+   * @param options
+   */
   async addStyleTag(options: {
     url?: string;
     path?: string;
@@ -320,6 +345,14 @@ export class DOMWorld {
     }
 
     if (path !== null) {
+      if (!isNode) {
+        throw new Error(
+          'Cannot pass a filepath to addStyleTag in the browser environment.'
+        );
+      }
+      // eslint-disable-next-line @typescript-eslint/no-var-requires
+      const fs = require('fs');
+      const readFileAsync = helper.promisify(fs.readFile);
       let contents = await readFileAsync(path, 'utf8');
       contents += '/*# sourceURL=' + path.replace(/\n/g, '') + '*/';
       const context = await this.executionContext();
